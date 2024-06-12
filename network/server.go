@@ -1,6 +1,7 @@
 package network
 
 import (
+	"fmt"
 	"github.com/asynkron/protoactor-go/actor"
 	"log"
 	"net"
@@ -9,34 +10,49 @@ import (
 
 type (
 	ServerActor struct {
-		Port    int
-		session map[net.Addr]*actor.PID
+		Port     int
+		sessions map[net.Addr]*actor.PID
+	}
+
+	RemoveSession struct {
+		addr net.Addr
+	}
+
+	AddSession struct {
+		conn net.Conn
 	}
 )
 
-func (s ServerActor) Receive(c actor.Context) {
-	switch c.Message().(type) {
+func (s *ServerActor) Receive(c actor.Context) {
+	switch msg := c.Message().(type) {
 	case *actor.Started:
-		s.session = make(map[net.Addr]*actor.PID)
-		s.Listen(s.Port, c)
-	}
-}
-
-func (s ServerActor) Listen(port int, c actor.Context) {
-	listen, err := net.Listen("tcp", "127.0.0.1:"+strconv.Itoa(port))
-	if err != nil {
-		log.Fatal(err)
-	}
-	for {
-		conn, err := listen.Accept()
+		listener, err := net.Listen("tcp", "127.0.0.1:"+strconv.Itoa(s.Port))
 		if err != nil {
 			log.Fatal(err)
 		}
 		props := actor.PropsFromProducer(func() actor.Actor {
-			return &SessionActor{}
+			return ListenerActor{listener: listener, server: c.Self()}
 		})
-		pid := c.Spawn(props)
-		s.session[conn.RemoteAddr()] = pid
-		c.Logger().Info("Create new session", "ip", conn.RemoteAddr().String())
+		c.Spawn(props)
+	case RemoveSession:
+		s.RemoveSession(msg.addr, c)
+	case AddSession:
+		s.AddSession(msg.conn, c)
 	}
+}
+
+func (s *ServerActor) RemoveSession(addr net.Addr, c actor.Context) {
+	fmt.Println("A")
+}
+
+func (s *ServerActor) AddSession(conn net.Conn, c actor.Context) {
+	props := actor.PropsFromProducer(func() actor.Actor {
+		return &SessionActor{conn: conn, server: c.Self()}
+	})
+	pid := c.Spawn(props)
+	if s.sessions == nil {
+		s.sessions = make(map[net.Addr]*actor.PID)
+	}
+	s.sessions[conn.RemoteAddr()] = pid
+	c.Logger().Info("Create new session", "ip", conn.RemoteAddr().String())
 }
