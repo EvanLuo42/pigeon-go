@@ -1,7 +1,6 @@
 package network
 
 import (
-	"fmt"
 	"github.com/asynkron/protoactor-go/actor"
 	"log"
 	"net"
@@ -42,7 +41,9 @@ func (s *ServerActor) Receive(c actor.Context) {
 }
 
 func (s *ServerActor) RemoveSession(addr net.Addr, c actor.Context) {
-	fmt.Println("A")
+	c.Stop(s.sessions[addr])
+	delete(s.sessions, addr)
+	c.Logger().Info("Destroy session", "addr", addr)
 }
 
 func (s *ServerActor) AddSession(conn net.Conn, c actor.Context) {
@@ -54,5 +55,5 @@ func (s *ServerActor) AddSession(conn net.Conn, c actor.Context) {
 		s.sessions = make(map[net.Addr]*actor.PID)
 	}
 	s.sessions[conn.RemoteAddr()] = pid
-	c.Logger().Info("Create new session", "ip", conn.RemoteAddr().String())
+	c.Logger().Info("Create new session", "addr", conn.RemoteAddr().String())
 }
