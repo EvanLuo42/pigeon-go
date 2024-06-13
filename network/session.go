@@ -14,9 +14,10 @@ type (
 
 func (s *SessionActor) Receive(c actor.Context) {
 	switch c.Message().(type) {
-	case actor.Started:
+	case *actor.Started:
 		for {
-			c.Send(s.server, RemoveSession{})
+
+			c.Send(s.server, RemoveSession{addr: s.conn.RemoteAddr()})
 		}
 	}
 }

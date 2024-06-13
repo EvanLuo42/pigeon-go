@@ -2,7 +2,6 @@ package network
 
 import (
 	"github.com/asynkron/protoactor-go/actor"
-	"log"
 	"net"
 )
 
@@ -13,13 +12,13 @@ type (
 	}
 )
 
-func (l ListenerActor) Receive(c actor.Context) {
+func (l *ListenerActor) Receive(c actor.Context) {
 	switch c.Message().(type) {
 	case *actor.Started:
 		for {
 			conn, err := l.listener.Accept()
 			if err != nil {
-				log.Fatal(err)
+				c.Logger().Error(err.Error())
 			}
 			c.Send(l.server, AddSession{conn: conn})
 		}

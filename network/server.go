@@ -30,7 +30,7 @@ func (s *ServerActor) Receive(c actor.Context) {
 			log.Fatal(err)
 		}
 		props := actor.PropsFromProducer(func() actor.Actor {
-			return ListenerActor{listener: listener, server: c.Self()}
+			return &ListenerActor{listener: listener, server: c.Self()}
 		})
 		c.Spawn(props)
 	case RemoveSession:
