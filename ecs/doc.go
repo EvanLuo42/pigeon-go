@@ -12,7 +12,7 @@
 // nothing more. In particular, an entity has no logic attached to it and stores
 // no data explicitly (except for the ID).
 //
-// Each entity corresponds to a specific entity within the game, such as a
+// Each entity corresponds to a specific entity within the components, such as a
 // character, an item, or a spell.
 //
 // # Components

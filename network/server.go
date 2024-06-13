@@ -4,6 +4,7 @@ import (
 	"github.com/asynkron/protoactor-go/actor"
 	"log"
 	"net"
+	"pigeon/game"
 	"strconv"
 )
 
@@ -11,6 +12,7 @@ type (
 	ServerActor struct {
 		Port     int
 		sessions map[net.Addr]*actor.PID
+		game     *actor.PID
 	}
 
 	RemoveSession struct {
@@ -33,6 +35,11 @@ func (s *ServerActor) Receive(c actor.Context) {
 			return &ListenerActor{listener: listener, server: c.Self()}
 		})
 		c.Spawn(props)
+		props = actor.PropsFromProducer(func() actor.Actor {
+			return &game.GameActor{Server: c.Self()}
+		})
+		pid := c.Spawn(props)
+		s.game = pid
 	case RemoveSession:
 		s.RemoveSession(msg.addr, c)
 	case AddSession:
@@ -48,7 +55,7 @@ func (s *ServerActor) RemoveSession(addr net.Addr, c actor.Context) {
 
 func (s *ServerActor) AddSession(conn net.Conn, c actor.Context) {
 	props := actor.PropsFromProducer(func() actor.Actor {
-		return &SessionActor{conn: conn, server: c.Self()}
+		return &SessionActor{conn: conn, server: c.Self(), game: s.game}
 	})
 	pid := c.Spawn(props)
 	if s.sessions == nil {
