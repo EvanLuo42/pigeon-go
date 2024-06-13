@@ -102,7 +102,7 @@ func (w *World) Systems() []System {
 
 // Update updates each System managed by the World. It is invoked by the engine
 // once every frame, with dt being the duration since the previous update.
-func (w *World) Update(dt float32) {
+func (w *World) Update(dt float64) {
 	for _, system := range w.Systems() {
 		system.Update(dt)
 	}

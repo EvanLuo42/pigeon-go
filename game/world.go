@@ -1,17 +1,17 @@
 package game
 
 import (
-	"fmt"
 	"github.com/asynkron/protoactor-go/actor"
-	"math/rand"
+	"pigeon/ecs"
 	"pigeon/pb/movement"
 	"strconv"
 	"time"
 )
 
 type (
-	GameActor struct {
+	WorldActor struct {
 		Server *actor.PID
+		world  ecs.World
 	}
 
 	Update struct {
@@ -19,9 +19,10 @@ type (
 	}
 )
 
-func (g *GameActor) Receive(c actor.Context) {
+func (g *WorldActor) Receive(c actor.Context) {
 	switch msg := c.Message().(type) {
 	case *actor.Started:
+		g.world = ecs.World{}
 		go func() {
 			ticker := time.NewTicker(time.Second)
 			defer ticker.Stop()
@@ -30,7 +31,10 @@ func (g *GameActor) Receive(c actor.Context) {
 				startTime := time.Now()
 				select {
 				case <-ticker.C:
-					c.RequestFuture(c.Self(), Update{deltaTime: deltaTime}, 5*time.Second).Wait()
+					err := c.RequestFuture(c.Self(), Update{deltaTime: deltaTime}, 5*time.Second).Wait()
+					if err != nil {
+						c.Logger().Error(err.Error())
+					}
 					endTime := time.Now()
 					deltaTime = endTime.Sub(startTime).Seconds()
 				}
@@ -43,13 +47,11 @@ func (g *GameActor) Receive(c actor.Context) {
 	}
 }
 
-func (g *GameActor) Test(msg *movement.Test, c actor.Context) {
+func (g *WorldActor) Test(msg *movement.Test, c actor.Context) {
 	c.Logger().Info(strconv.Itoa(int(msg.Test)))
 }
 
-func (g *GameActor) Update(msg Update, c actor.Context) {
-	fmt.Println(msg.deltaTime)
-	num := rand.Intn(4)
-	time.Sleep(time.Duration(num) * time.Second)
-	c.Respond(1)
+func (g *WorldActor) Update(msg Update, c actor.Context) {
+	g.world.Update(msg.deltaTime)
+	c.Respond(true)
 }

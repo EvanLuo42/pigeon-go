@@ -36,7 +36,7 @@ func (s *ServerActor) Receive(c actor.Context) {
 		})
 		c.Spawn(props)
 		props = actor.PropsFromProducer(func() actor.Actor {
-			return &game.GameActor{Server: c.Self()}
+			return &game.WorldActor{Server: c.Self()}
 		})
 		pid := c.Spawn(props)
 		s.game = pid
