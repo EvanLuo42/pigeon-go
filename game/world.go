@@ -1,6 +1,7 @@
 package game
 
 import (
+	"fmt"
 	"github.com/asynkron/protoactor-go/actor"
 	"pigeon/ecs"
 	"pigeon/pb/movement"
@@ -24,20 +25,24 @@ func (g *WorldActor) Receive(c actor.Context) {
 	case *actor.Started:
 		g.world = ecs.World{}
 		go func() {
-			ticker := time.NewTicker(time.Second)
-			defer ticker.Stop()
+			freq := time.Second
+			timeout := 5 * time.Second
 			deltaTime := 0.0
+			timer := time.NewTimer(freq)
 			for {
 				startTime := time.Now()
-				select {
-				case <-ticker.C:
-					err := c.RequestFuture(c.Self(), Update{deltaTime: deltaTime}, 5*time.Second).Wait()
-					if err != nil {
-						c.Logger().Error(err.Error())
-					}
-					endTime := time.Now()
-					deltaTime = endTime.Sub(startTime).Seconds()
+				err := c.RequestFuture(c.Self(), Update{deltaTime: deltaTime}, timeout).Wait()
+				if err != nil {
+					c.Logger().Error(err.Error())
 				}
+				endTime := time.Now()
+				deltaTime = endTime.Sub(startTime).Seconds()
+				if deltaTime > freq.Seconds() {
+					continue
+				}
+				<-timer.C
+				deltaTime = time.Second.Seconds()
+				timer.Reset(time.Second)
 			}
 		}()
 	case Update:
@@ -52,6 +57,7 @@ func (g *WorldActor) Test(msg *movement.Test, c actor.Context) {
 }
 
 func (g *WorldActor) Update(msg Update, c actor.Context) {
+	fmt.Println(msg.deltaTime)
 	g.world.Update(msg.deltaTime)
 	c.Respond(true)
 }
